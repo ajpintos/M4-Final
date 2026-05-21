@@ -13,3 +13,4 @@ build/
 *.png
 data/test_contracts/pair_1_simple/
 data/test_contracts/pair_2_complex/
+.history/
