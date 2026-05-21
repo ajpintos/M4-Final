@@ -1,6 +1,9 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langfuse.decorators import observe, langfuse_context
+from langfuse.callback import CallbackHandler
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from openai import RateLimitError, APITimeoutError
 
 SYSTEM_PROMPT = """\
 Eres un Analista Senior de Contratos Legales con 20 años de experiencia en derecho corporativo \
@@ -53,6 +56,18 @@ class ContextualizationAgent:
         ])
         self._chain = prompt | llm
 
+    @retry(
+        retry=retry_if_exception_type((RateLimitError, APITimeoutError)),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        reraise=True,
+    )
+    def _invoke_chain(self, inputs: dict) -> str:
+        """Invoca el chain con reintentos automáticos ante rate limits y timeouts."""
+        langfuse_handler = CallbackHandler()
+        response = self._chain.invoke(inputs, config={"callbacks": [langfuse_handler]})
+        return response.content
+
     @observe(name="contextualization_agent")
     def run(self, original_text: str, amendment_text: str) -> str:
         """Produce un mapa contextual estructural a partir de los textos de ambos documentos.
@@ -72,12 +87,10 @@ class ContextualizationAgent:
             metadata={"model": "gpt-4o", "role": "contextualization"},
         )
 
-        response = self._chain.invoke({
+        context_map = self._invoke_chain({
             "original_text": original_text,
             "amendment_text": amendment_text,
         })
-
-        context_map: str = response.content
 
         langfuse_context.update_current_observation(
             output=context_map[:800] + "..." if len(context_map) > 800 else context_map,

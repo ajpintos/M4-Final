@@ -16,6 +16,8 @@ import json
 import sys
 from pathlib import Path
 
+from rich import print_json
+
 from dotenv import load_dotenv
 from langfuse.decorators import langfuse_context, observe
 
@@ -143,7 +145,7 @@ def main() -> None:
     print("\n" + "=" * 60)
     print("ANÁLISIS DE CAMBIOS CONTRACTUALES — RESULTADO")
     print("=" * 60)
-    print(output_json)
+    print_json(output_json)
 
     if args.output:
         out_path = Path(args.output)

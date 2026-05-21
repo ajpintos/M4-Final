@@ -4,6 +4,9 @@ from pathlib import Path
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 from langfuse.decorators import observe, langfuse_context
+from langfuse.callback import CallbackHandler
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from openai import RateLimitError, APITimeoutError
 
 ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg"}
 MAX_FILE_SIZE_MB = 20
@@ -46,9 +49,25 @@ def _encode_image_base64(image_path: Path) -> tuple[str, str]:
     """Devuelve (cadena_base64, mime_type)."""
     mime_map = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"}
     mime_type = mime_map[image_path.suffix.lower()]
-    with open(image_path, "rb") as f:
-        b64 = base64.standard_b64encode(f.read()).decode("utf-8")
+    try:
+        with open(image_path, "rb") as f:
+            b64 = base64.standard_b64encode(f.read()).decode("utf-8")
+    except IOError as exc:
+        raise IOError(f"No se pudo leer el archivo de imagen: {image_path}") from exc
     return b64, mime_type
+
+
+@retry(
+    retry=retry_if_exception_type((RateLimitError, APITimeoutError)),
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    reraise=True,
+)
+def _invoke_vision_llm(llm: ChatOpenAI, message: HumanMessage) -> str:
+    """Llama a GPT-4o Vision con reintentos automáticos ante rate limits y timeouts."""
+    langfuse_handler = CallbackHandler()
+    response = llm.invoke([message], config={"callbacks": [langfuse_handler]})
+    return response.content
 
 
 @observe(name="parse_contract_image")
@@ -84,8 +103,7 @@ def parse_contract_image(image_path: str, document_label: str = "document") -> s
         ]
     )
 
-    response = llm.invoke([message])
-    extracted_text: str = response.content
+    extracted_text = _invoke_vision_llm(llm, message)
 
     langfuse_context.update_current_observation(
         output=extracted_text[:500] + "..." if len(extracted_text) > 500 else extracted_text,

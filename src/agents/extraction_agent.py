@@ -1,6 +1,9 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langfuse.decorators import observe, langfuse_context
+from langfuse.callback import CallbackHandler
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from openai import RateLimitError, APITimeoutError
 from pydantic import ValidationError
 
 from src.models import ContractChangeOutput
@@ -62,6 +65,17 @@ class ExtractionAgent:
         ])
         self._chain = prompt | llm
 
+    @retry(
+        retry=retry_if_exception_type((RateLimitError, APITimeoutError)),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        reraise=True,
+    )
+    def _invoke_chain(self, inputs: dict) -> ContractChangeOutput:
+        """Invoca el chain con reintentos automáticos ante rate limits y timeouts."""
+        langfuse_handler = CallbackHandler()
+        return self._chain.invoke(inputs, config={"callbacks": [langfuse_handler]})
+
     @observe(name="extraction_agent")
     def run(
         self,
@@ -88,7 +102,7 @@ class ExtractionAgent:
             metadata={"model": "gpt-4o", "role": "extraction", "output_format": "structured"},
         )
 
-        raw: ContractChangeOutput = self._chain.invoke({
+        raw: ContractChangeOutput = self._invoke_chain({
             "context_map": context_map,
             "original_text": original_text,
             "amendment_text": amendment_text,
