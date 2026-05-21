@@ -28,21 +28,22 @@ VISION_PROMPT = (
 def _validate_image_path(image_path: str) -> Path:
     path = Path(image_path)
     if not path.exists():
-        raise FileNotFoundError(f"Image file not found: {image_path}")
+        raise FileNotFoundError(f"Archivo de imagen no encontrado: {image_path}")
     if path.suffix.lower() not in ALLOWED_EXTENSIONS:
         raise ValueError(
-            f"Unsupported format '{path.suffix}'. "
-            f"Allowed extensions: {', '.join(ALLOWED_EXTENSIONS)}"
+            f"Formato no soportado '{path.suffix}'. "
+            f"Extensiones permitidas: {', '.join(ALLOWED_EXTENSIONS)}"
         )
     size_mb = path.stat().st_size / (1024 * 1024)
     if size_mb > MAX_FILE_SIZE_MB:
         raise ValueError(
-            f"File too large: {size_mb:.1f} MB (maximum allowed: {MAX_FILE_SIZE_MB} MB)"
+            f"Archivo demasiado grande: {size_mb:.1f} MB (máximo permitido: {MAX_FILE_SIZE_MB} MB)"
         )
     return path
 
 
 def _encode_image_base64(image_path: Path) -> tuple[str, str]:
+    """Devuelve (cadena_base64, mime_type)."""
     mime_map = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"}
     mime_type = mime_map[image_path.suffix.lower()]
     with open(image_path, "rb") as f:
@@ -52,14 +53,14 @@ def _encode_image_base64(image_path: Path) -> tuple[str, str]:
 
 @observe(name="parse_contract_image")
 def parse_contract_image(image_path: str, document_label: str = "document") -> str:
-    """Extract full text from a contract image using GPT-4o Vision.
+    """Extrae el texto completo de una imagen de contrato usando GPT-4o Vision.
 
     Args:
-        image_path: Absolute or relative path to a PNG/JPG image.
-        document_label: Human-readable label for tracing (e.g. 'original', 'amendment').
+        image_path: Ruta absoluta o relativa a una imagen PNG/JPG.
+        document_label: Etiqueta legible para el trazado (ej: 'original', 'amendment').
 
     Returns:
-        Extracted text preserving the document's structure and hierarchy.
+        Texto extraído preservando la estructura y jerarquía del documento.
     """
     path = _validate_image_path(image_path)
     b64, mime_type = _encode_image_base64(path)

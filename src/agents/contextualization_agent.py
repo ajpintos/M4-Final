@@ -43,7 +43,7 @@ Genera el mapa contextual y estructural comparado de ambos documentos.\
 
 
 class ContextualizationAgent:
-    """Agent 1: Maps the structural context of both documents before change extraction."""
+    """Agente 1: Mapea el contexto estructural de ambos documentos antes de extraer cambios."""
 
     def __init__(self, model: str = "gpt-4o") -> None:
         llm = ChatOpenAI(model=model, temperature=0)
@@ -55,14 +55,14 @@ class ContextualizationAgent:
 
     @observe(name="contextualization_agent")
     def run(self, original_text: str, amendment_text: str) -> str:
-        """Produce a structural context map from both document texts.
+        """Produce un mapa contextual estructural a partir de los textos de ambos documentos.
 
         Args:
-            original_text: Full text extracted from the original contract.
-            amendment_text: Full text extracted from the amendment.
+            original_text: Texto completo extraído del contrato original.
+            amendment_text: Texto completo extraído de la enmienda.
 
         Returns:
-            Markdown-formatted context map describing document structure and section mapping.
+            Mapa contextual en formato Markdown con la estructura y correspondencia de secciones.
         """
         langfuse_context.update_current_observation(
             input={

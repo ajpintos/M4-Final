@@ -49,7 +49,7 @@ Analiza todos los cambios y genera el reporte estructurado completo.\
 
 
 class ExtractionAgent:
-    """Agent 2: Extracts and classifies all changes introduced by the amendment."""
+    """Agente 2: Extrae y clasifica todos los cambios introducidos por la enmienda."""
 
     def __init__(self, model: str = "gpt-4o") -> None:
         llm = ChatOpenAI(model=model, temperature=0).with_structured_output(
@@ -68,15 +68,15 @@ class ExtractionAgent:
         original_text: str,
         amendment_text: str,
     ) -> ContractChangeOutput:
-        """Extract all changes from the amendment and return a validated Pydantic model.
+        """Extrae todos los cambios de la enmienda y devuelve un modelo Pydantic validado.
 
         Args:
-            context_map: Structural map produced by ContextualizationAgent.
-            original_text: Full text of the original contract.
-            amendment_text: Full text of the amendment.
+            context_map: Mapa estructural producido por ContextualizationAgent.
+            original_text: Texto completo del contrato original.
+            amendment_text: Texto completo de la enmienda.
 
         Returns:
-            ContractChangeOutput with sections_changed, topics_touched, and summary.
+            ContractChangeOutput con sections_changed, topics_touched y summary.
         """
         langfuse_context.update_current_observation(
             input={
