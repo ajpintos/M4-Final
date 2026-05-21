@@ -1,45 +1,45 @@
-# LegalMove — Autonomous Contract Amendment Comparison Agent
+# LegalMove — Agente Autónomo de Comparación de Contratos
 
-A multi-agent system that processes scanned contract images using GPT-4o Vision and
-two specialized LangChain agents to identify, classify, and summarize legal changes.
-Output is a Pydantic-validated JSON with full Langfuse traceability.
+Sistema multi-agente que procesa imágenes escaneadas de contratos usando GPT-4o Vision y
+dos agentes especializados con LangChain para identificar, clasificar y resumir cambios legales.
+El resultado es un JSON validado por Pydantic con trazabilidad completa en Langfuse.
 
 ---
 
-## Architecture
+## Arquitectura
 
 ```
 python -m src.main --original <img> --amendment <img>
           │
           ▼
 ┌─────────────────────────────────────────────────────────┐
-│  contract-analysis  (@observe root span)                │
+│  contract-analysis  (span raíz @observe)                │
 │                                                         │
 │  ┌─────────────────────────────────────────────────┐    │
-│  │  parse_contract_image  (@observe span)          │    │
-│  │  GPT-4o Vision + base64 encoding                │    │
-│  │  Input: original.png  → Output: full text       │    │
+│  │  parse_contract_image  (span @observe)          │    │
+│  │  GPT-4o Vision + codificación base64            │    │
+│  │  Input: original.png  → Output: texto completo  │    │
 │  └─────────────────────────────────────────────────┘    │
 │                                                         │
 │  ┌─────────────────────────────────────────────────┐    │
-│  │  parse_contract_image  (@observe span)          │    │
-│  │  GPT-4o Vision + base64 encoding                │    │
-│  │  Input: amendment.png → Output: full text       │    │
+│  │  parse_contract_image  (span @observe)          │    │
+│  │  GPT-4o Vision + codificación base64            │    │
+│  │  Input: amendment.png → Output: texto completo  │    │
 │  └─────────────────────────────────────────────────┘    │
 │                                                         │
 │  ┌─────────────────────────────────────────────────┐    │
-│  │  contextualization_agent  (@observe span)       │    │
+│  │  contextualization_agent  (span @observe)       │    │
 │  │  LangChain LCEL: PromptTemplate | ChatOpenAI    │    │
-│  │  Role: "Senior Legal Contract Analyst"          │    │
-│  │  Input: both texts → Output: context map (md)  │    │
+│  │  Rol: "Analista Senior de Contratos"            │    │
+│  │  Input: ambos textos → Output: mapa contextual  │    │
 │  └─────────────────────────────────────────────────┘    │
 │                                                         │
 │  ┌─────────────────────────────────────────────────┐    │
-│  │  extraction_agent  (@observe span)              │    │
+│  │  extraction_agent  (span @observe)              │    │
 │  │  LangChain + with_structured_output(Pydantic)   │    │
-│  │  Role: "Legal Change Auditor"                   │    │
-│  │  Input: context + both texts                    │    │
-│  │  Output: ContractChangeOutput (validated JSON)  │    │
+│  │  Rol: "Auditor Legal de Cambios"                │    │
+│  │  Input: mapa + ambos textos                     │    │
+│  │  Output: ContractChangeOutput (JSON validado)   │    │
 │  └─────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────┘
           │
@@ -53,50 +53,50 @@ python -m src.main --original <img> --amendment <img>
 
 ---
 
-## Project Structure
+## Estructura del proyecto
 
 ```
 M4-Final/
 ├── src/
-│   ├── main.py                          # Entry point + root @observe pipeline
+│   ├── main.py                          # Entry point + pipeline raíz (@observe)
 │   ├── image_parser.py                  # parse_contract_image() — GPT-4o Vision
 │   ├── models.py                        # ContractChangeOutput (Pydantic)
-│   ├── config.py                        # Env var validation
+│   ├── config.py                        # Validación de variables de entorno
 │   └── agents/
-│       ├── contextualization_agent.py   # Agent 1: structural mapping
-│       └── extraction_agent.py          # Agent 2: change extraction + validation
+│       ├── contextualization_agent.py   # Agente 1: mapeo estructural
+│       └── extraction_agent.py          # Agente 2: extracción de cambios + validación
 ├── data/
 │   └── test_contracts/
-│       ├── pair_1_simple/               # SaaS contract (3 simple changes)
-│       ├── pair_2_complex/              # Software license (4 modifications + 1 addition)
-│       ├── pair_3_consulting/           # Consulting contract (bonus pair)
-│       └── README.md                    # Description of each test pair
+│       ├── pair_1_simple/               # Contrato SaaS (3 cambios simples)
+│       ├── pair_2_complex/              # Licencia de Software (4 modificaciones + 1 adición)
+│       ├── pair_3_consulting/           # Contrato de Consultoría (par bonus)
+│       └── README.md                    # Descripción de cada par de prueba
 ├── scripts/
-│   └── prepare_test_images.py           # PDF → PNG converter (one-off setup)
-├── additional-resources/                # Original PDFs provided with the project
+│   └── prepare_test_images.py           # Conversor PDF → PNG (configuración inicial)
+├── additional-resources/                # PDFs originales provistos con el proyecto
 ├── requirements.txt
 └── .env.example
 ```
 
 ---
 
-## Setup
+## Instalación
 
-### Prerequisites
+### Requisitos previos
 
 - Python 3.12+
-- [uv](https://docs.astral.sh/uv/) (recommended) or pip
-- OpenAI API key with GPT-4o access
-- [Langfuse](https://cloud.langfuse.com) account (free tier works)
+- [uv](https://docs.astral.sh/uv/) (recomendado) o pip
+- API key de OpenAI con acceso a GPT-4o
+- Cuenta en [Langfuse](https://cloud.langfuse.com) (el plan gratuito funciona)
 
-### 1. Clone the repository
+### 1. Clonar el repositorio
 
 ```bash
-git clone <repository-url>
+git clone <url-del-repositorio>
 cd M4-Final
 ```
 
-### 2. Create and activate the virtual environment
+### 2. Crear y activar el entorno virtual
 
 ```bash
 uv venv .venv --python 3.12
@@ -104,17 +104,17 @@ source .venv/bin/activate        # Linux / macOS
 # .venv\Scripts\activate         # Windows
 ```
 
-### 3. Install dependencies
+### 3. Instalar dependencias
 
 ```bash
 uv pip install -r requirements.txt
 ```
 
-### 4. Configure environment variables
+### 4. Configurar las variables de entorno
 
 ```bash
 cp .env.example .env
-# Edit .env and fill in your keys:
+# Editá .env y completá tus claves:
 #   OPENAI_API_KEY=sk-...
 #   LANGFUSE_PUBLIC_KEY=pk-lf-...
 #   LANGFUSE_SECRET_KEY=sk-lf-...
@@ -123,27 +123,27 @@ cp .env.example .env
 
 ---
 
-## Usage
+## Uso
 
 ```bash
-# Pair 1 — Simple changes (SaaS contract)
+# Par 1 — Cambios simples (contrato SaaS)
 python -m src.main \
   --original  data/test_contracts/pair_1_simple/original.png \
   --amendment data/test_contracts/pair_1_simple/amendment.png
 
-# Pair 2 — Complex changes (Software License)
+# Par 2 — Cambios complejos (Licencia de Software)
 python -m src.main \
   --original  data/test_contracts/pair_2_complex/original.png \
   --amendment data/test_contracts/pair_2_complex/amendment.png
 
-# Save output to a file
+# Guardar resultado en un archivo
 python -m src.main \
   --original  data/test_contracts/pair_2_complex/original.png \
   --amendment data/test_contracts/pair_2_complex/amendment.png \
-  --output    results/pair2_output.json
+  --output    results/par2_resultado.json
 ```
 
-### Expected output
+### Salida esperada
 
 ```json
 {
@@ -167,81 +167,81 @@ python -m src.main \
 
 ---
 
-## Technical Decisions
+## Decisiones técnicas
 
-### Why GPT-4o for Vision?
+### ¿Por qué GPT-4o para Vision?
 
-GPT-4o natively understands document layout, hierarchical numbering, and legal
-formatting from a raw image — no OCR pre-processing required. The `detail: "high"`
-parameter instructs the model to analyze the full image resolution, preserving
-clause numbers and sub-clause structure that cheaper OCR tools would flatten.
+GPT-4o entiende de forma nativa el layout de documentos, la numeración jerárquica y el
+formato legal directamente desde una imagen, sin necesidad de pre-procesamiento con OCR.
+El parámetro `detail: "high"` instruye al modelo a analizar la imagen en alta resolución,
+preservando los números de cláusulas y la estructura jerárquica que las herramientas OCR
+tradicionales aplanarían.
 
-### Why two agents instead of one?
+### ¿Por qué dos agentes en lugar de uno?
 
-A monolithic agent that does both contextualization and extraction produces
-significantly more hallucinations, because it conflates two cognitively distinct
-tasks. The two-agent design mirrors how legal review actually works:
+Un agente monolítico que hace tanto la contextualización como la extracción produce
+significativamente más alucinaciones, ya que conflúa dos tareas cognitivamente distintas.
+El diseño de dos agentes refleja cómo funciona la revisión legal en la práctica:
 
-1. **ContextualizationAgent** (Analista Senior) builds a structural map of both
-   documents — which sections exist, how they correspond, and the general purpose
-   of each block. It does *not* extract changes. This map acts as a shared
-   "scratchpad" that grounds the second agent.
+1. **ContextualizationAgent** (Analista Senior) construye un mapa estructural de ambos
+   documentos — qué secciones existen, cómo se corresponden y cuál es el propósito de
+   cada bloque. *No extrae cambios*. Este mapa actúa como un "scratchpad" compartido
+   que ancla al segundo agente.
 
-2. **ExtractionAgent** (Auditor Legal) receives both texts *plus* the context map.
-   With the structure already resolved, it can focus exclusively on identifying,
-   classifying (ADDITION / DELETION / MODIFICATION), and describing each change
-   with legal precision.
+2. **ExtractionAgent** (Auditor Legal) recibe ambos textos *más* el mapa contextual.
+   Con la estructura ya resuelta, puede enfocarse exclusivamente en identificar,
+   clasificar (ADICIÓN / ELIMINACIÓN / MODIFICACIÓN) y describir cada cambio con
+   precisión legal.
 
-This separation also makes debugging easier: if the output is wrong, you can
-inspect the context map in Langfuse to determine whether the error is structural
-(Agent 1) or analytical (Agent 2).
+Esta separación también facilita el debugging: si el output es incorrecto, se puede
+inspeccionar el mapa contextual en Langfuse para determinar si el error es estructural
+(Agente 1) o analítico (Agente 2).
 
-### Why `with_structured_output` for validation?
+### ¿Por qué `with_structured_output` para la validación?
 
-`ChatOpenAI.with_structured_output(ContractChangeOutput)` uses OpenAI's native
-function-calling / JSON schema enforcement, which means the model is constrained
-at the *generation* level to produce output that matches the Pydantic schema.
-This is more reliable than parsing a free-form string with a regex or asking the
-model to "return JSON" — the latter produces invalid JSON ~15% of the time in
-practice on long documents.
+`ChatOpenAI.with_structured_output(ContractChangeOutput)` usa el mecanismo nativo de
+function calling / JSON schema de OpenAI, lo que significa que el modelo queda
+*restringido a nivel de generación* para producir un output que cumpla el esquema Pydantic.
+Esto es más confiable que parsear un string libre con regex o pedirle al modelo que
+"devuelva JSON" — esto último produce JSON inválido aproximadamente el 15% de las veces
+en documentos largos.
 
-### Langfuse `@observe` decorator pattern
+### Patrón de trazabilidad con el decorador `@observe` de Langfuse
 
-Each function in the pipeline is decorated with `@observe(name=...)`. When
-`run_pipeline()` calls the child functions, Langfuse automatically builds the
-parent-child span hierarchy without any manual span management. This keeps the
-business logic clean while still capturing inputs, outputs, latency, and metadata
-at every stage.
-
----
-
-## Langfuse Trace Structure
-
-The dashboard shows one trace per pipeline execution:
-
-```
-contract-analysis  (root trace)
-├── parse_contract_image   [original]  → char count, latency, tokens
-├── parse_contract_image   [amendment] → char count, latency, tokens
-├── contextualization_agent            → context map preview, latency
-└── extraction_agent                   → sections/topics count, output JSON
-```
-
-To view traces: log in to [cloud.langfuse.com](https://cloud.langfuse.com),
-open your project, and navigate to **Traces**.
+Cada función del pipeline está decorada con `@observe(name=...)`. Cuando `run_pipeline()`
+llama a las funciones hijas, Langfuse construye automáticamente la jerarquía
+padre-hijo de spans sin necesidad de gestión manual. Esto mantiene la lógica de negocio
+limpia mientras captura inputs, outputs, latencia y metadata en cada etapa.
 
 ---
 
-## Dependencies
+## Estructura de trazas en Langfuse
 
-| Package | Version | Purpose |
-|---------|---------|---------|
-| `langchain-openai` | ≥0.3.0 | LangChain + OpenAI integration |
-| `langchain-core` | ≥0.3.0 | LCEL chains, prompt templates |
-| `openai` | ≥1.50.0 | OpenAI SDK (Vision, structured outputs) |
-| `pydantic` | ≥2.7.0 | Output schema validation |
-| `langfuse` | ≥2.60.0 | Observability and tracing |
-| `python-dotenv` | ≥1.0.0 | Secure env var management |
-| `pdf2image` | ≥1.17.0 | PDF → PNG conversion (setup only) |
-| `Pillow` | ≥10.0.0 | Image handling |
-| `tenacity` | ≥8.3.0 | Retry logic for API errors |
+El dashboard muestra una traza por ejecución del pipeline:
+
+```
+contract-analysis  (traza raíz)
+├── parse_contract_image   [original]  → cantidad de chars, latencia, tokens
+├── parse_contract_image   [amendment] → cantidad de chars, latencia, tokens
+├── contextualization_agent            → preview del mapa contextual, latencia
+└── extraction_agent                   → cantidad de secciones/temas, JSON de salida
+```
+
+Para ver las trazas: ingresar a [cloud.langfuse.com](https://cloud.langfuse.com),
+abrir el proyecto y navegar a **Traces**.
+
+---
+
+## Dependencias
+
+| Paquete | Versión | Propósito |
+|---------|---------|-----------|
+| `langchain-openai` | 0.3.35 | Integración LangChain + OpenAI |
+| `langchain-core` | 0.3.86 | Chains LCEL, prompt templates |
+| `openai` | 1.109.1 | SDK de OpenAI (Vision, structured outputs) |
+| `pydantic` | 2.13.4 | Validación del esquema de salida |
+| `langfuse` | 2.60.10 | Observabilidad y trazabilidad |
+| `python-dotenv` | 1.2.2 | Gestión segura de variables de entorno |
+| `pdf2image` | 1.17.0 | Conversión PDF → PNG (solo configuración inicial) |
+| `Pillow` | 12.2.0 | Procesamiento de imágenes |
+| `tenacity` | 9.1.4 | Lógica de reintentos para errores de API |
