@@ -1,6 +1,7 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langfuse.decorators import observe, langfuse_context
+from pydantic import ValidationError
 
 from src.models import ContractChangeOutput
 
@@ -87,11 +88,19 @@ class ExtractionAgent:
             metadata={"model": "gpt-4o", "role": "extraction", "output_format": "structured"},
         )
 
-        result: ContractChangeOutput = self._chain.invoke({
+        raw: ContractChangeOutput = self._chain.invoke({
             "context_map": context_map,
             "original_text": original_text,
             "amendment_text": amendment_text,
         })
+
+        # Validación explícita con Pydantic para garantizar integridad del schema
+        try:
+            result = ContractChangeOutput.model_validate(raw.model_dump())
+        except ValidationError as exc:
+            raise ValueError(
+                f"El output del agente no cumple el esquema ContractChangeOutput:\n{exc}"
+            ) from exc
 
         langfuse_context.update_current_observation(
             output={
