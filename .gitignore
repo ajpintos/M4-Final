@@ -1,0 +1,15 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.DS_Store
+*.jpg
+*.jpeg
+*.png
+data/test_contracts/pair_1_simple/
+data/test_contracts/pair_2_complex/
